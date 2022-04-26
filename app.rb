@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'json'
 
 def split_tweet_line(line)
@@ -28,19 +30,17 @@ end
 sentiment_hash = sentiment_data.to_h
 
 coord_weight_of_all_tweets_array = []
-File.readlines('tweets/football_tweets2014').each do |info_line|
+File.readlines('tweets/high_school_tweets2014').each do |info_line|
   arr_element = []
   arr_str = get_tweet_text(split_tweet_line(info_line))
   sum = 0
   sentiment_hash.each do |key, value|
-     sum += value.to_f if arr_str.include?(key)
+    sum += value.to_f if arr_str.include?(key)
   end
-  sum = sum / arr_str.length
-  # get_tweet_coord(split_tweet_line(info_line))
-  arr_element << get_tweet_coord(split_tweet_line(info_line)) << sum.round(3)
+  sum /= arr_str.length
+  arr_element << get_tweet_coord(split_tweet_line(info_line)) << sum
   coord_weight_of_all_tweets_array << arr_element
 end
-
 
 file = File.read('states/states')
 sentiment_hash = JSON.parse(file)
@@ -48,17 +48,14 @@ sentiment_hash = JSON.parse(file)
 def is_in_polygon?(polygon, testing_point)
   result = false
   j = polygon.size - 1
-  0.upto(polygon.size-1) do |i|
-    if polygon[i][1] < testing_point[0] && polygon[j][1] >= testing_point[0] || polygon[j][1] < testing_point[0] && polygon[i][1] >= testing_point[0]
-      if polygon[i][0] + (testing_point[0] - polygon[i][1]) / (polygon[j][1] - polygon[i][1]) * (polygon[j][0] - polygon[i][0]) < testing_point[1]
-        result = !result
-      end
+  0.upto(polygon.size - 1) do |i|
+    if (polygon[i][1] < testing_point[0] && polygon[j][1] >= testing_point[0] || polygon[j][1] < testing_point[0] && polygon[i][1] >= testing_point[0]) && (polygon[i][0] + (testing_point[0] - polygon[i][1]) / (polygon[j][1] - polygon[i][1]) * (polygon[j][0] - polygon[i][0]) < testing_point[1])
+      result = !result
     end
     j = i
   end
   result
 end
-
 
 state_weight_hash = {}
 coord_weight_of_all_tweets_array.each do |point|
@@ -74,18 +71,18 @@ coord_weight_of_all_tweets_array.each do |point|
       end
       if result
         if state_weight_hash.include?(_key)
-          state_weight_hash[_key] += point[1]
+          state_weight_hash[_key] += (point[1] / coord_weight_of_all_tweets_array.size).round(7)
         else
-          state_weight_hash[_key] = point[1]
+          state_weight_hash[_key] = (point[1] / coord_weight_of_all_tweets_array.size).round(7)
         end
       end
     end
   end
 end
 
-p state_weight_hash.sort{|a,b| b[1] <=> a[1]}
+p state_weight_hash.sort { |a, b| b[1] <=> a[1] }
 
-  File.open('results/result_football_tweets2014.txt', 'w') do |f|
-    f.write("#{state_weight_hash.sort{|a,b| b[1] <=> a[1]}}")
-    f.close
-  end
+File.open('results/result_high_school_tweets2014.txt', 'w') do |f|
+  f.write((state_weight_hash.sort { |a, b| b[1] <=> a[1] }).to_s)
+  f.close
+end
